@@ -1,0 +1,685 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>Seletor Perfume do Madmax</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="theme-color" content="#3c2440">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Seletor Madmax">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600&display=swap');
+
+  :root{
+    --ink:#2b1d14;
+    --amber-deep:#7a3b12;
+    --amber:#b5641f;
+    --amber-soft:#e2a45c;
+    --cream:#f6ecd9;
+    --plum:#3c2440;
+    --line:rgba(43,29,20,0.16);
+    --paper:#fbf5e9;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    font-family:'Inter',sans-serif;
+    background:
+      radial-gradient(ellipse at top left, #f0dcb8 0%, transparent 55%),
+      radial-gradient(ellipse at bottom right, #e7c896 0%, transparent 60%),
+      var(--cream);
+    color:var(--ink);
+    min-height:100vh;
+    padding:28px 18px 60px;
+  }
+  .wrap{max-width:520px;margin:0 auto;}
+
+  header{margin-bottom:26px;}
+  .eyebrow-row{display:flex;align-items:center;gap:10px;margin-bottom:6px;}
+  .glyph{
+    width:30px;height:30px;flex:none;
+    border-radius:50%;
+    background:conic-gradient(from 200deg, var(--amber-deep), var(--amber-soft), var(--plum), var(--amber-deep));
+  }
+  .kicker{font-size:13px;color:var(--amber-deep);letter-spacing:0.02em;}
+  h1{
+    font-family:'Fraunces',serif;
+    font-weight:500;
+    font-size:33px;
+    line-height:1.08;
+    margin:2px 0 8px;
+    color:var(--ink);
+  }
+  .sub{font-size:14.5px;color:#5c4a3a;line-height:1.5;max-width:42ch;}
+
+  .card{
+    background:var(--paper);
+    border:1px solid var(--line);
+    border-radius:18px;
+    padding:22px;
+    margin-bottom:16px;
+    box-shadow:0 1px 0 rgba(255,255,255,0.6) inset, 0 10px 24px -18px rgba(58,30,10,0.5);
+  }
+
+  .field-row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;}
+  .field{flex:1;min-width:140px;}
+  label{display:block;font-size:12.5px;color:var(--amber-deep);margin-bottom:6px;}
+  input[type=number]{
+    width:100%;
+    font-family:'Fraunces',serif;
+    font-size:22px;
+    padding:8px 10px;
+    border:1px solid var(--line);
+    border-radius:10px;
+    background:#fff;
+    color:var(--ink);
+  }
+  input[type=number]:focus{outline:2px solid var(--amber-soft);outline-offset:1px;}
+
+  .rain-toggle{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    font-size:13px;
+    color:var(--ink);
+    margin-top:12px;
+    cursor:pointer;
+  }
+  .rain-toggle input{width:16px;height:16px;accent-color:var(--amber-deep);}
+
+  .weather-status{
+    font-size:12.5px;color:#8a7561;margin-top:8px;line-height:1.5;
+  }
+  .weather-status button{
+    background:none;border:none;color:var(--amber-deep);text-decoration:underline;
+    cursor:pointer;font-size:12.5px;padding:0;font-family:inherit;
+  }
+
+  .btn-main{
+    width:100%;
+    margin-top:16px;
+    padding:14px;
+    border:none;
+    border-radius:12px;
+    background:linear-gradient(135deg, var(--amber-deep), var(--amber));
+    color:#fff8ee;
+    font-family:'Fraunces',serif;
+    font-size:17px;
+    letter-spacing:0.01em;
+    cursor:pointer;
+    transition:transform 0.15s ease, box-shadow 0.15s ease;
+    box-shadow:0 8px 18px -10px rgba(122,59,18,0.7);
+  }
+  .btn-main:active{transform:scale(0.98);}
+
+  .btn-alt{
+    width:100%;
+    margin-top:12px;
+    padding:12px;
+    border:1px solid var(--line);
+    border-radius:12px;
+    background:transparent;
+    color:var(--amber-deep);
+    font-family:'Inter',sans-serif;
+    font-size:14px;
+    font-weight:600;
+    cursor:pointer;
+  }
+  .btn-alt:active{transform:scale(0.98);}
+  .btn-alt:disabled{opacity:0.5;cursor:default;}
+
+  .result{display:none;}
+  .result.show{display:block;}
+
+  .result-card{
+    background:linear-gradient(160deg, #3c2440, #241627);
+    color:#f3e9d8;
+    border-radius:20px;
+    padding:26px 24px;
+    position:relative;
+    overflow:hidden;
+  }
+  .result-card::before{
+    content:"";
+    position:absolute;
+    top:-40px;right:-40px;
+    width:160px;height:160px;
+    border-radius:50%;
+    background:radial-gradient(circle, rgba(226,164,92,0.35), transparent 70%);
+  }
+  .tag-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;position:relative;}
+  .tag{
+    font-size:11.5px;
+    padding:4px 10px;
+    border-radius:999px;
+    border:1px solid rgba(243,233,216,0.35);
+    color:#e2c9a0;
+  }
+  .tag.hero{background:rgba(226,164,92,0.18);border-color:rgba(226,164,92,0.5);color:#f0cf9c;}
+
+  .perfume-name{
+    font-family:'Fraunces',serif;
+    font-size:28px;
+    line-height:1.15;
+    margin:0 0 4px;
+    position:relative;
+  }
+  .perfume-brand{
+    font-size:14px;
+    color:#c9b596;
+    margin:0 0 16px;
+    position:relative;
+  }
+  .why{
+    font-size:13.5px;
+    line-height:1.6;
+    color:#e6d9c2;
+    border-top:1px solid rgba(243,233,216,0.2);
+    padding-top:14px;
+    position:relative;
+  }
+  .why b{color:#f0cf9c;font-weight:600;}
+
+  .week-strip{
+    display:flex;
+    gap:6px;
+    margin-top:14px;
+  }
+  .day-dot{
+    flex:1;
+    height:6px;
+    border-radius:4px;
+    background:rgba(243,233,216,0.15);
+  }
+  .day-dot.done{background:var(--amber-soft);}
+  .day-dot.today{background:#fff;}
+
+  .meta-line{
+    font-size:12px;color:#8a7561;margin-top:14px;text-align:center;
+  }
+
+  .reset-link{
+    display:block;
+    text-align:center;
+    font-size:12px;
+    color:#8a7561;
+    margin-top:22px;
+    text-decoration:underline;
+    cursor:pointer;
+    background:none;border:none;
+    width:100%;
+  }
+
+  .loading-line{font-size:13px;color:var(--amber-deep);}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="eyebrow-row">
+      <div class="glyph"></div>
+      <div class="kicker">Seletor Perfume do Madmax · rotina das 5h15</div>
+    </div>
+    <h1>Qual perfume hoje?</h1>
+    <p class="sub">Cruza temperatura e estação com sua coleção. A assinatura entra uma vez por semana, e ao menos um favorito também — sem repetir os demais até girar toda a lista.</p>
+  </header>
+
+  <div class="card" id="inputCard">
+    <div class="field-row">
+      <div class="field">
+        <label for="tempInput">Temperatura agora (°C)</label>
+        <input type="number" id="tempInput" value="24" step="1">
+      </div>
+    </div>
+    <label class="rain-toggle" for="rainInput">
+      <input type="checkbox" id="rainInput">
+      Dia chuvoso (conta como Inverno na escolha)
+    </label>
+    <div class="weather-status" id="weatherStatus">
+      Tentando detectar a temperatura e a chuva automaticamente… <button id="manualBtn" type="button">usar manualmente</button>
+    </div>
+    <button class="btn-main" id="pickBtn">Escolher perfume de hoje</button>
+  </div>
+
+  <div class="result" id="resultBlock">
+    <div class="result-card">
+      <div class="tag-row" id="tagRow"></div>
+      <p class="perfume-name" id="perfumeName">—</p>
+      <p class="perfume-brand" id="perfumeBrand">—</p>
+      <div class="why" id="whyText"></div>
+      <div class="week-strip" id="weekStrip"></div>
+    </div>
+    <div class="meta-line" id="metaLine"></div>
+    <button class="btn-alt" id="altBtn" type="button">Escolher outro perfume</button>
+  </div>
+
+  <button class="reset-link" id="resetLink" type="button">Reiniciar rotação da semana</button>
+</div>
+
+<script>
+// shim de armazenamento: fora do Claude usamos localStorage (persistente no navegador/app)
+const storage = {
+  async get(key){
+    const raw = localStorage.getItem('nuancielo:'+key);
+    if (raw === null) throw new Error('not found');
+    return { key, value: raw };
+  },
+  async set(key, value){
+    localStorage.setItem('nuancielo:'+key, value);
+    return { key, value };
+  },
+  async delete(key){
+    localStorage.removeItem('nuancielo:'+key);
+    return { key, deleted: true };
+  }
+};
+
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('service-worker.js').catch(()=>{});
+  });
+}
+
+const PERFUMES = [{"nome": "Effervescent", "marca": "LAB 8 Fragrances", "periodo": "Dia", "estacoes": ["Primavera", "Verão"], "afinidade": "calor", "categoria": "favorito"}, {"nome": "Blue de LAB 8", "marca": "LAB 8 Fragrances", "periodo": "Dia e noite", "estacoes": ["Primavera", "Verão"], "afinidade": "calor", "categoria": "regular"}, {"nome": "Essencial Safran Masculino", "marca": "Natura", "periodo": "Noite", "estacoes": ["Outono", "Inverno"], "afinidade": "frio", "categoria": "regular"}, {"nome": "Bade'e Al Oud – Oud for Glory", "marca": "Lattafa Perfumes", "periodo": "Noite", "estacoes": ["Outono", "Inverno"], "afinidade": "frio", "categoria": "regular"}, {"nome": "Vulcan Feu", "marca": "French Avenue", "periodo": "Dia", "estacoes": ["Primavera", "Verão"], "afinidade": "calor", "categoria": "regular"}, {"nome": "Club de Nuit Intense Man", "marca": "Armaf", "periodo": "Noite", "estacoes": ["Outono", "Inverno"], "afinidade": "frio", "categoria": "regular"}, {"nome": "Light Blue Pour Homme (clássico)", "marca": "Dolce & Gabbana", "periodo": "Dia", "estacoes": ["Primavera", "Verão"], "afinidade": "calor", "categoria": "regular"}, {"nome": "Azzaro Pour Homme Cologne Intense", "marca": "Azzaro", "periodo": "Dia", "estacoes": ["Primavera", "Verão"], "afinidade": "calor", "categoria": "regular"}, {"nome": "H24", "marca": "Hermès", "periodo": "Dia", "estacoes": ["Primavera", "Verão"], "afinidade": "calor", "categoria": "regular"}, {"nome": "Animale Animale for Men", "marca": "Animale", "periodo": "Noite", "estacoes": ["Outono", "Inverno"], "afinidade": "frio", "categoria": "regular"}, {"nome": "Bad Boy Cobalt Eau de Parfum Électrique", "marca": "Carolina Herrera", "periodo": "Dia e noite", "estacoes": ["Primavera", "Outono"], "afinidade": "transicao", "categoria": "regular"}, {"nome": "Jimmy Choo Man Intense", "marca": "Jimmy Choo", "periodo": "Noite", "estacoes": ["Outono", "Inverno"], "afinidade": "frio", "categoria": "regular"}, {"nome": "Givenchy Pour Homme", "marca": "Givenchy", "periodo": "Dia", "estacoes": ["Primavera", "Verão"], "afinidade": "calor", "categoria": "regular"}, {"nome": "First Instinct", "marca": "Abercrombie & Fitch", "periodo": "Dia", "estacoes": ["Primavera", "Verão"], "afinidade": "calor", "categoria": "regular"}, {"nome": "Bleu de Chanel", "marca": "Chanel", "periodo": "Dia e noite", "estacoes": ["Primavera", "Outono"], "afinidade": "transicao", "categoria": "regular"}, {"nome": "L'Eau d'Issey Pour Homme Solar Lavender", "marca": "Issey Miyake", "periodo": "Dia", "estacoes": ["Primavera", "Verão"], "afinidade": "calor", "categoria": "regular"}, {"nome": "Tiffany & Love for Him", "marca": "Tiffany & Co.", "periodo": "Dia", "estacoes": ["Primavera", "Verão"], "afinidade": "calor", "categoria": "regular"}, {"nome": "Black XS", "marca": "Paco Rabanne", "periodo": "Noite", "estacoes": ["Outono", "Inverno"], "afinidade": "frio", "categoria": "favorito"}, {"nome": "Uomo", "marca": "Salvatore Ferragamo", "periodo": "Dia e noite", "estacoes": ["Outono", "Inverno"], "afinidade": "frio", "categoria": "regular"}, {"nome": "Bvlgari Man in Black", "marca": "Bvlgari", "periodo": "Noite", "estacoes": ["Outono", "Inverno"], "afinidade": "frio", "categoria": "regular"}, {"nome": "Versace Eau Fraîche Extrême", "marca": "Versace", "periodo": "Dia", "estacoes": ["Primavera", "Verão"], "afinidade": "calor", "categoria": "favorito"}, {"nome": "Versace Man Eau Fraîche", "marca": "Versace", "periodo": "Dia", "estacoes": ["Primavera", "Verão"], "afinidade": "calor", "categoria": "favorito"}, {"nome": "L'Eau Kenzo Pour Homme", "marca": "Kenzo", "periodo": "Dia", "estacoes": ["Primavera", "Verão"], "afinidade": "calor", "categoria": "regular"}, {"nome": "Kenzo Pour Homme Eau de Toilette", "marca": "Kenzo", "periodo": "Dia", "estacoes": ["Primavera", "Verão"], "afinidade": "calor", "categoria": "regular"}, {"nome": "Kenzo Pour Homme Eau de Parfum", "marca": "Kenzo", "periodo": "Dia e noite", "estacoes": ["Primavera", "Outono"], "afinidade": "transicao", "categoria": "regular"}, {"nome": "Alien Man", "marca": "Mugler", "periodo": "Noite", "estacoes": ["Outono", "Inverno"], "afinidade": "frio", "categoria": "regular"}, {"nome": "A*Men", "marca": "Mugler", "periodo": "Noite", "estacoes": ["Outono", "Inverno"], "afinidade": "frio", "categoria": "regular"}, {"nome": "Impact", "marca": "Tommy Hilfiger", "periodo": "Dia e noite", "estacoes": ["Primavera", "Outono"], "afinidade": "transicao", "categoria": "regular"}, {"nome": "Tommy", "marca": "Tommy Hilfiger", "periodo": "Dia", "estacoes": ["Primavera", "Verão"], "afinidade": "calor", "categoria": "regular"}, {"nome": "Mr. Burberry Indigo", "marca": "Burberry", "periodo": "Dia", "estacoes": ["Primavera", "Verão"], "afinidade": "calor", "categoria": "regular"}, {"nome": "Burberry Hero", "marca": "Burberry", "periodo": "Dia e noite", "estacoes": ["Outono", "Primavera"], "afinidade": "transicao", "categoria": "regular"}, {"nome": "Le Male Lover", "marca": "Jean Paul Gaultier", "periodo": "Dia e noite", "estacoes": ["Primavera", "Outono"], "afinidade": "transicao", "categoria": "regular"}, {"nome": "Le Beau Le Parfum", "marca": "Jean Paul Gaultier", "periodo": "Noite", "estacoes": ["Outono", "Inverno"], "afinidade": "frio", "categoria": "regular"}, {"nome": "Le Male Paradise Garden", "marca": "Jean Paul Gaultier", "periodo": "Dia e noite", "estacoes": ["Primavera", "Verão"], "afinidade": "calor", "categoria": "regular"}, {"nome": "Le Male Eau Fraîche", "marca": "Jean Paul Gaultier", "periodo": "Dia", "estacoes": ["Primavera", "Verão"], "afinidade": "calor", "categoria": "regular"}, {"nome": "Boss Bottled Infinite Eau de Parfum", "marca": "Hugo Boss", "periodo": "Dia e noite", "estacoes": ["Primavera", "Outono"], "afinidade": "transicao", "categoria": "assinatura"}, {"nome": "Boss Bottled Eau de Toilette", "marca": "Hugo Boss", "periodo": "Dia e noite", "estacoes": ["Primavera", "Outono"], "afinidade": "transicao", "categoria": "favorito"}, {"nome": "Boss Bottled Tonic Eau de Toilette", "marca": "Hugo Boss", "periodo": "Dia", "estacoes": ["Primavera", "Verão"], "afinidade": "calor", "categoria": "regular"}, {"nome": "Boss Bottled Night Eau de Toilette", "marca": "Hugo Boss", "periodo": "Noite", "estacoes": ["Outono", "Inverno"], "afinidade": "frio", "categoria": "regular"}, {"nome": "Boss Bottled Parfum", "marca": "Hugo Boss", "periodo": "Noite", "estacoes": ["Outono", "Inverno"], "afinidade": "frio", "categoria": "regular"}, {"nome": "Boss Bottled Eau de Parfum", "marca": "Hugo Boss", "periodo": "Dia e noite", "estacoes": ["Outono", "Inverno"], "afinidade": "frio", "categoria": "regular"}, {"nome": "Ombré Leather Eau de Toilette", "marca": "Tom Ford", "periodo": "Noite", "estacoes": ["Outono", "Inverno"], "afinidade": "frio", "categoria": "favorito"}, {"nome": "Black Orchid Eau de Parfum", "marca": "Tom Ford", "periodo": "Noite", "estacoes": ["Outono", "Inverno"], "afinidade": "frio", "categoria": "regular"}, {"nome": "Legend Eau de Toilette", "marca": "Montblanc", "periodo": "Dia e noite", "estacoes": ["Primavera", "Outono"], "afinidade": "transicao", "categoria": "regular"}, {"nome": "Starwalker Extreme", "marca": "Montblanc", "periodo": "Dia e noite", "estacoes": ["Primavera", "Outono"], "afinidade": "transicao", "categoria": "regular"}, {"nome": "Acqua di Giò Profondo Eau de Parfum", "marca": "Giorgio Armani", "periodo": "Dia", "estacoes": ["Primavera", "Verão"], "afinidade": "calor", "categoria": "regular"}, {"nome": "Armani Code Eau de Toilette", "marca": "Giorgio Armani", "periodo": "Noite", "estacoes": ["Outono", "Inverno"], "afinidade": "frio", "categoria": "regular"}, {"nome": "Luna Rossa Eau de Toilette", "marca": "Prada", "periodo": "Dia", "estacoes": ["Primavera", "Verão"], "afinidade": "calor", "categoria": "favorito"}, {"nome": "Luna Rossa Eau Sport Eau de Toilette", "marca": "Prada", "periodo": "Dia", "estacoes": ["Primavera", "Verão"], "afinidade": "calor", "categoria": "regular"}, {"nome": "Luna Rossa Ocean Eau de Toilette", "marca": "Prada", "periodo": "Dia", "estacoes": ["Primavera", "Verão"], "afinidade": "calor", "categoria": "regular"}, {"nome": "Luna Rossa Carbon Eau de Toilette", "marca": "Prada", "periodo": "Dia e noite", "estacoes": ["Primavera", "Outono"], "afinidade": "transicao", "categoria": "favorito"}, {"nome": "Luna Rossa Black Eau de Parfum", "marca": "Prada", "periodo": "Noite", "estacoes": ["Outono", "Inverno"], "afinidade": "frio", "categoria": "regular"}, {"nome": "Y Eau de Toilette", "marca": "Yves Saint Laurent", "periodo": "Dia e noite", "estacoes": ["Primavera", "Outono"], "afinidade": "transicao", "categoria": "regular"}, {"nome": "MYSLF Eau de Toilette", "marca": "Yves Saint Laurent", "periodo": "Dia e noite", "estacoes": ["Primavera", "Outono"], "afinidade": "transicao", "categoria": "regular"}, {"nome": "L'Homme Eau de Toilette", "marca": "Yves Saint Laurent", "periodo": "Dia", "estacoes": ["Primavera", "Verão"], "afinidade": "calor", "categoria": "regular"}, {"nome": "La Nuit de L'Homme Eau de Toilette", "marca": "Yves Saint Laurent", "periodo": "Noite", "estacoes": ["Outono", "Inverno"], "afinidade": "frio", "categoria": "regular"}, {"nome": "Sauvage Eau de Toilette", "marca": "Dior", "periodo": "Dia e noite", "estacoes": ["Primavera", "Outono"], "afinidade": "transicao", "categoria": "favorito"}, {"nome": "Fahrenheit Eau de Toilette", "marca": "Dior", "periodo": "Dia e noite", "estacoes": ["Outono", "Inverno"], "afinidade": "frio", "categoria": "favorito"}, {"nome": "Higher Energy Eau de Toilette", "marca": "Dior", "periodo": "Dia", "estacoes": ["Primavera", "Verão"], "afinidade": "calor", "categoria": "regular"}, {"nome": "Dior Homme Sport Eau de Toilette", "marca": "Dior", "periodo": "Dia", "estacoes": ["Primavera", "Verão"], "afinidade": "calor", "categoria": "regular"}, {"nome": "Dune Pour Homme Eau de Toilette", "marca": "Dior", "periodo": "Dia e noite", "estacoes": ["Primavera", "Outono"], "afinidade": "transicao", "categoria": "regular"}, {"nome": "Aquatica", "marca": "Rayhaan", "periodo": "Dia", "estacoes": ["Primavera", "Verão"], "afinidade": "calor", "categoria": "regular"}, {"nome": "Liquid Brun", "marca": "French Avenue", "periodo": "Dia e noite", "estacoes": ["Outono", "Inverno"], "afinidade": "frio", "categoria": "regular"}, {"nome": "Everest", "marca": "Nuancielo", "periodo": "Dia e noite", "estacoes": ["Primavera", "Outono"], "afinidade": "transicao", "categoria": "regular"}, {"nome": "Angel's Lux Frost", "marca": "Nuancielo", "periodo": "Dia e noite", "estacoes": ["Outono", "Inverno"], "afinidade": "frio", "categoria": "regular"}]
+;
+
+// ---------- helpers de data / estação (hemisfério sul) ----------
+function pad(n){return n<10?'0'+n:''+n;}
+
+function getSeason(date, isRaining){
+  if (isRaining) return 'Inverno'; // dia chuvoso conta como Inverno na escolha
+  const m = date.getMonth()+1, d = date.getDate();
+  const md = m*100+d;
+  if (md >= 1221 || md <= 320) return 'Verão';
+  if (md >= 321 && md <= 620) return 'Outono';
+  if (md >= 621 && md <= 922) return 'Inverno';
+  return 'Primavera';
+}
+
+function isoWeekKey(date){
+  const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+  const dayNum = (d.getUTCDay() + 6) % 7; // segunda=0
+  d.setUTCDate(d.getUTCDate() - dayNum + 3);
+  const firstThursday = new Date(Date.UTC(d.getUTCFullYear(),0,4));
+  const week = 1 + Math.round(((d - firstThursday) / 86400000 - 3 + ((firstThursday.getUTCDay()+6)%7)) / 7);
+  return d.getUTCFullYear() + '-W' + pad(week);
+}
+
+function isoWeekdayMon0(date){
+  return (date.getDay() + 6) % 7; // segunda=0 ... domingo=6
+}
+
+function dateKey(date){
+  return date.getFullYear()+'-'+pad(date.getMonth()+1)+'-'+pad(date.getDate());
+}
+
+// ---------- PRNG determinístico por seed (data) ----------
+function seededRandom(seedStr){
+  let h = 0;
+  for (let i=0;i<seedStr.length;i++){ h = Math.imul(31,h) + seedStr.charCodeAt(i) | 0; }
+  return function(){
+    h = Math.imul(h ^ (h >>> 15), h | 1);
+    h ^= h + Math.imul(h ^ (h >>> 7), h | 61);
+    return ((h ^ (h >>> 14)) >>> 0) / 4294967296;
+  };
+}
+function pickSeeded(arr, seedStr){
+  if (arr.length === 0) return null;
+  const rnd = seededRandom(seedStr);
+  return arr[Math.floor(rnd() * arr.length)];
+}
+
+// ---------- estado semanal ----------
+async function loadWeekState(weekKey){
+  try{
+    const res = await storage.get('week-state:'+weekKey, false);
+    if (res && res.value) return JSON.parse(res.value);
+  }catch(e){}
+  return { usedNames: [], signatureUsed: false, favoriteCount: 0 };
+}
+async function saveWeekState(weekKey, state){
+  try{ await storage.set('week-state:'+weekKey, JSON.stringify(state), false); }catch(e){}
+}
+async function loadTodayPick(dKey){
+  try{
+    const res = await storage.get('pick:'+dKey, false);
+    if (res && res.value) return JSON.parse(res.value);
+  }catch(e){}
+  return null;
+}
+async function saveTodayPick(dKey, payload){
+  try{ await storage.set('pick:'+dKey, JSON.stringify(payload), false); }catch(e){}
+}
+
+// ---------- lógica de seleção ----------
+function isHot(temp){ return temp > 22; }
+
+function eligiblePool(temp){
+  const hot = isHot(temp);
+  const wantAffin = hot ? 'calor' : 'frio';
+  return PERFUMES.filter(p=>{
+    const periodoOk = (p.periodo === 'Dia' || p.periodo === 'Dia e noite');
+    const affinOk = (p.afinidade === wantAffin || p.afinidade === 'transicao');
+    return periodoOk && affinOk;
+  });
+}
+
+function seasonMatch(p, season){
+  return p.estacoes.indexOf(season) !== -1;
+}
+
+function excludeName(arr, name){
+  if (!name) return arr;
+  const filtered = arr.filter(p => p.nome !== name);
+  return filtered.length ? filtered : arr; // só mantém o repetido se for a única opção possível
+}
+
+async function chooseTodayPerfume(temp, isRaining){
+  const now = new Date();
+  const dKey = dateKey(now);
+  const wKey = isoWeekKey(now);
+  const weekdayIdx = isoWeekdayMon0(now); // 0=seg ... 6=dom
+  const season = getSeason(now, isRaining);
+  const hot = isHot(temp);
+
+  // se já existe escolha salva pra hoje nessa mesma semana e mesma condição de chuva, reaproveita
+  const existing = await loadTodayPick(dKey);
+  if (existing && existing.weekKey === wKey && existing.temp === temp && !!existing.isRaining === !!isRaining) {
+    return existing;
+  }
+
+  // perfume de ontem — evita repetir mesmo virando a semana
+  const yesterday = new Date(now.getTime() - 86400000);
+  const yPick = await loadTodayPick(dateKey(yesterday));
+  const lastName = yPick && yPick.perfume ? yPick.perfume.nome : null;
+
+  let state = await loadWeekState(wKey);
+  const pool = eligiblePool(temp);
+
+  const assinatura = pool.find(p => p.categoria === 'assinatura');
+  let favoritosPool = pool.filter(p => p.categoria === 'favorito' && state.usedNames.indexOf(p.nome) === -1);
+  let regularPool = pool.filter(p => p.categoria !== 'assinatura' && state.usedNames.indexOf(p.nome) === -1);
+  favoritosPool = excludeName(favoritosPool, lastName);
+  regularPool = excludeName(regularPool, lastName);
+
+  let chosen = null;
+  let reasonTag = 'regular';
+
+  // 1) assinatura: alvo quarta-feira (idx 2), forçado até domingo (idx 6) se ainda não usada
+  //    nunca repete se foi o perfume de ontem, mesmo que o estado semanal esteja inconsistente
+  const signatureWasYesterday = assinatura && lastName === assinatura.nome;
+  if (!state.signatureUsed && assinatura && weekdayIdx >= 2 && !signatureWasYesterday) {
+    chosen = assinatura;
+    reasonTag = 'assinatura';
+  }
+  // auto-correção: se ontem já foi assinatura NESTA MESMA semana mas o estado não registrou isso, corrige agora
+  if (signatureWasYesterday && yPick && yPick.weekKey === wKey && !state.signatureUsed) {
+    state.signatureUsed = true;
+  }
+
+  if (yPick && yPick.reasonTag === 'favorito' && yPick.weekKey === wKey && state.favoriteCount === 0) {
+    state.favoriteCount = 1; // auto-correção: ontem já contou como favorito da semana
+  }
+
+  // 2) favorito: alvo sábado (idx 5), forçado no domingo (idx 6) se ainda sem favorito
+  if (!chosen && state.favoriteCount === 0 && weekdayIdx >= 5) {
+    const seasonFavs = favoritosPool.filter(p => seasonMatch(p, season));
+    const favChoice = seasonFavs.length ? seasonFavs : favoritosPool;
+    chosen = pickSeeded(favChoice, dKey+'-fav') || pickSeeded(excludeName(PERFUMES.filter(p=>p.categoria==='favorito'), lastName), dKey+'-fav-fallback');
+    reasonTag = 'favorito';
+  }
+
+  // 3) chance orgânica de puxar um favorito mesmo antes do alvo (deixa a rotina mais viva)
+  if (!chosen && favoritosPool.length) {
+    const rnd = seededRandom(dKey+'-favchance');
+    const seasonFavs = favoritosPool.filter(p => seasonMatch(p, season));
+    if (rnd() < 0.35 && (seasonFavs.length || favoritosPool.length)) {
+      chosen = pickSeeded(seasonFavs.length ? seasonFavs : favoritosPool, dKey+'-favpick');
+      reasonTag = 'favorito';
+    }
+  }
+
+  // 4) regular rotativo, priorizando estação atual
+  if (!chosen) {
+    let candidates = regularPool.filter(p => seasonMatch(p, season));
+    if (!candidates.length) candidates = regularPool;
+    if (!candidates.length) {
+      // semana esgotada: reseta rotação (menos assinatura/favorito já contabilizados)
+      state.usedNames = [];
+      candidates = pool.filter(p => p.categoria !== 'assinatura' && seasonMatch(p, season));
+      if (!candidates.length) candidates = pool.filter(p => p.categoria !== 'assinatura');
+      candidates = excludeName(candidates, lastName);
+    }
+    chosen = pickSeeded(candidates, dKey+'-reg');
+    reasonTag = chosen && chosen.categoria === 'favorito' ? 'favorito' : 'regular';
+  }
+
+  if (!chosen) {
+    // fallback absoluto: qualquer perfume de dia, evitando repetir o de ontem se possível
+    const anyDayPerfume = excludeName(PERFUMES.filter(p => p.periodo !== 'Noite'), lastName);
+    chosen = anyDayPerfume[0] || PERFUMES[0];
+    reasonTag = 'regular';
+  }
+
+  // atualiza estado
+  if (reasonTag === 'assinatura') state.signatureUsed = true;
+  if (reasonTag === 'favorito') state.favoriteCount += 1;
+  if (state.usedNames.indexOf(chosen.nome) === -1) state.usedNames.push(chosen.nome);
+  await saveWeekState(wKey, state);
+
+  const payload = {
+    weekKey: wKey, dateKey: dKey, temp, hot, season, weekdayIdx, isRaining: !!isRaining,
+    perfume: chosen, reasonTag,
+    signatureUsed: state.signatureUsed, favoriteCount: state.favoriteCount,
+    usedCount: state.usedNames.length
+  };
+  await saveTodayPick(dKey, payload);
+  return payload;
+}
+
+// troca manual: descarta a escolha atual de hoje e sorteia outra, sem repetir a de hoje nem a de ontem
+async function pickAlternative(currentPayload, temp, isRaining){
+  const now = new Date();
+  const dKey = dateKey(now);
+  const wKey = isoWeekKey(now);
+  const weekdayIdx = isoWeekdayMon0(now);
+  const season = getSeason(now, isRaining);
+  const hot = isHot(temp);
+
+  const yesterday = new Date(now.getTime() - 86400000);
+  const yPick = await loadTodayPick(dateKey(yesterday));
+  const lastName = yPick && yPick.perfume ? yPick.perfume.nome : null;
+
+  let state = await loadWeekState(wKey);
+
+  // reverte a contribuição da escolha atual, se ela pertencer a esta mesma semana
+  if (currentPayload && currentPayload.weekKey === wKey) {
+    if (currentPayload.reasonTag === 'assinatura') state.signatureUsed = false;
+    if (currentPayload.reasonTag === 'favorito') state.favoriteCount = Math.max(0, state.favoriteCount - 1);
+    const idx = state.usedNames.indexOf(currentPayload.perfume.nome);
+    if (idx !== -1) state.usedNames.splice(idx, 1);
+  }
+
+  const excludeToday = currentPayload && currentPayload.perfume ? currentPayload.perfume.nome : null;
+
+  let pool = eligiblePool(temp);
+  pool = excludeName(pool, excludeToday);
+  pool = excludeName(pool, lastName);
+
+  let candidates = pool.filter(p => seasonMatch(p, season));
+  if (!candidates.length) candidates = pool;
+  if (!candidates.length) candidates = excludeName(PERFUMES.filter(p => p.periodo !== 'Noite'), excludeToday);
+
+  // contador de cliques do dia, pra variar a sugestão a cada troca
+  let altCount = 0;
+  try{
+    const c = await storage.get('alt-count:'+dKey, false);
+    altCount = c && c.value ? parseInt(c.value, 10) : 0;
+  }catch(e){}
+  altCount += 1;
+  try{ await storage.set('alt-count:'+dKey, String(altCount), false); }catch(e){}
+
+  const chosen = pickSeeded(candidates, dKey + '-alt-' + altCount) || candidates[0] || PERFUMES[0];
+  const reasonTag = chosen.categoria === 'assinatura' ? 'assinatura' : chosen.categoria === 'favorito' ? 'favorito' : 'regular';
+
+  if (reasonTag === 'assinatura') state.signatureUsed = true;
+  if (reasonTag === 'favorito') state.favoriteCount += 1;
+  if (state.usedNames.indexOf(chosen.nome) === -1) state.usedNames.push(chosen.nome);
+  await saveWeekState(wKey, state);
+
+  const payload = {
+    weekKey: wKey, dateKey: dKey, temp, hot, season, weekdayIdx, isRaining: !!isRaining,
+    perfume: chosen, reasonTag, manual: true,
+    signatureUsed: state.signatureUsed, favoriteCount: state.favoriteCount,
+    usedCount: state.usedNames.length
+  };
+  await saveTodayPick(dKey, payload);
+  return payload;
+}
+const DAY_LABELS = ['Seg','Ter','Qua','Qui','Sex','Sáb','Dom'];
+
+function renderResult(payload){
+  const { perfume, reasonTag, hot, season, weekdayIdx, signatureUsed, favoriteCount, isRaining } = payload;
+
+  document.getElementById('perfumeName').textContent = perfume.nome;
+  document.getElementById('perfumeBrand').textContent = perfume.marca;
+
+  const tagRow = document.getElementById('tagRow');
+  tagRow.innerHTML = '';
+  const heroLabel = reasonTag === 'assinatura' ? 'Assinatura da semana'
+                    : reasonTag === 'favorito' ? 'Favorito da semana'
+                    : 'Rotação regular';
+  tagRow.innerHTML = `
+    ${payload.manual ? '<span class="tag">Troca manual</span>' : ''}
+    <span class="tag hero">${heroLabel}</span>
+    <span class="tag">${hot ? 'Calor' : 'Frio'} · ${payload.temp}°C</span>
+    <span class="tag">${season}${isRaining ? ' (chuva)' : ''}</span>
+  `;
+
+  const seasonNote = perfume.estacoes.indexOf(season) !== -1
+    ? `combina com a estação atual (${season.toLowerCase()})`
+    : `é de perfil versátil (${perfume.estacoes.join(' / ')}), então cobre bem o clima de hoje`;
+
+  let why = `Escolhido para uma manhã de <b>${hot ? 'calor' : 'frio'}</b> (${payload.temp}°C)${isRaining ? ', com <b>chuva</b> — tratada como Inverno na escolha,' : ''} e ${seasonNote}.`;
+  if (reasonTag === 'assinatura') why += ' É sua fragrância assinatura — entra uma vez por semana, e hoje foi o dia.';
+  if (reasonTag === 'favorito') why += ' É um dos seus favoritos — a semana ainda estava sem nenhum, então ele entrou.';
+
+  document.getElementById('whyText').innerHTML = why;
+
+  const strip = document.getElementById('weekStrip');
+  strip.innerHTML = '';
+  DAY_LABELS.forEach((label, i)=>{
+    const dot = document.createElement('div');
+    dot.className = 'day-dot' + (i < weekdayIdx ? ' done' : '') + (i === weekdayIdx ? ' today' : '');
+    strip.appendChild(dot);
+  });
+
+  document.getElementById('metaLine').textContent =
+    `Assinatura ${signatureUsed ? 'usada' : 'ainda não usada'} esta semana · ${favoriteCount} favorito(s) já usados`;
+
+  document.getElementById('resultBlock').classList.add('show');
+}
+
+let currentPayload = null;
+
+async function runPick(){
+  const btn = document.getElementById('pickBtn');
+  btn.textContent = 'Escolhendo…';
+  btn.disabled = true;
+  const temp = parseFloat(document.getElementById('tempInput').value) || 24;
+  const isRaining = document.getElementById('rainInput').checked;
+  try{
+    const payload = await chooseTodayPerfume(temp, isRaining);
+    currentPayload = payload;
+    renderResult(payload);
+  } finally {
+    btn.textContent = 'Escolher perfume de hoje';
+    btn.disabled = false;
+  }
+}
+
+async function runAlternative(){
+  const btn = document.getElementById('altBtn');
+  btn.textContent = 'Trocando…';
+  btn.disabled = true;
+  const temp = parseFloat(document.getElementById('tempInput').value) || 24;
+  const isRaining = document.getElementById('rainInput').checked;
+  try{
+    const payload = await pickAlternative(currentPayload, temp, isRaining);
+    currentPayload = payload;
+    renderResult(payload);
+  } finally {
+    btn.textContent = 'Escolher outro perfume';
+    btn.disabled = false;
+  }
+}
+
+document.getElementById('pickBtn').addEventListener('click', runPick);
+document.getElementById('altBtn').addEventListener('click', runAlternative);
+
+document.getElementById('resetLink').addEventListener('click', async ()=>{
+  const now = new Date();
+  const wKey = isoWeekKey(now);
+  try{
+    await storage.set('week-state:'+wKey, JSON.stringify({usedNames:[], signatureUsed:false, favoriteCount:0}), false);
+    await storage.delete('pick:'+dateKey(now), false);
+    await storage.delete('alt-count:'+dateKey(now), false);
+  }catch(e){}
+  currentPayload = null;
+  document.getElementById('resultBlock').classList.remove('show');
+  document.getElementById('weatherStatus').textContent = 'Rotação da semana reiniciada.';
+});
+
+document.getElementById('manualBtn').addEventListener('click', ()=>{
+  document.getElementById('weatherStatus').textContent = 'Modo manual: ajuste o campo de temperatura acima.';
+});
+
+// tenta detectar temperatura automaticamente via geolocalização + Open-Meteo
+async function tryAutoWeather(){
+  const statusEl = document.getElementById('weatherStatus');
+  if (!navigator.geolocation) {
+    statusEl.innerHTML = 'Detecção automática indisponível — ajuste a temperatura manualmente.';
+    return;
+  }
+  navigator.geolocation.getCurrentPosition(async (pos)=>{
+    try{
+      const { latitude, longitude } = pos.coords;
+      const url = `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,precipitation,weather_code`;
+      const res = await fetch(url);
+      const data = await res.json();
+      const cur = data && data.current;
+      const temp = cur && cur.temperature_2m;
+      const precip = cur && cur.precipitation;
+      const code = cur && cur.weather_code;
+      // códigos WMO de chuva: 51-67 garoa/chuva, 80-82 pancadas, 95-99 tempestade
+      const rainCodes = new Set([51,53,55,56,57,61,63,65,66,67,80,81,82,95,96,99]);
+      const raining = (typeof precip === 'number' && precip > 0) || rainCodes.has(code);
+
+      if (typeof temp === 'number'){
+        document.getElementById('tempInput').value = Math.round(temp);
+        document.getElementById('rainInput').checked = !!raining;
+        statusEl.innerHTML = `Detectado automaticamente: ${Math.round(temp)}°C${raining ? ', chuva' : ', sem chuva'}. <button id="manualBtn2" type="button">ajustar manualmente</button>`;
+        document.getElementById('manualBtn2').addEventListener('click', ()=>{
+          statusEl.textContent = 'Modo manual: ajuste temperatura e chuva acima.';
+        });
+      } else {
+        throw new Error('sem dado de temperatura');
+      }
+    }catch(e){
+      statusEl.textContent = 'Não consegui buscar o clima automaticamente — ajuste temperatura e chuva manualmente.';
+    }
+  }, ()=>{
+    statusEl.textContent = 'Localização não liberada — ajuste temperatura e chuva manualmente.';
+  }, { timeout: 6000 });
+}
+
+tryAutoWeather();
+</script>
+</body>
+</html>
