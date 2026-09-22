@@ -216,6 +216,60 @@
   }
 
   .loading-line{font-size:13px;color:var(--amber-deep);}
+
+  .history-panel{
+    display:none;
+    margin-top:14px;
+    max-height:420px;
+    overflow-y:auto;
+    border-radius:16px;
+    background:var(--paper);
+    border:1px solid var(--line);
+  }
+  .history-panel.show{display:block;}
+  .history-empty{
+    padding:20px;
+    text-align:center;
+    font-size:13px;
+    color:#8a7561;
+  }
+  .history-row{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:10px;
+    padding:12px 16px;
+    border-bottom:1px solid var(--line);
+  }
+  .history-row:last-child{border-bottom:none;}
+  .history-date{
+    font-size:11.5px;
+    color:#8a7561;
+    min-width:74px;
+    line-height:1.3;
+  }
+  .history-date b{display:block;color:var(--amber-deep);font-size:13px;}
+  .history-info{flex:1;min-width:0;}
+  .history-name{
+    font-family:'Fraunces',serif;
+    font-size:15px;
+    color:var(--ink);
+    margin:0 0 2px;
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+  }
+  .history-brand{font-size:11.5px;color:#8a7561;}
+  .history-badge{
+    font-size:10.5px;
+    padding:3px 8px;
+    border-radius:999px;
+    white-space:nowrap;
+    background:rgba(122,59,18,0.1);
+    color:var(--amber-deep);
+    border:1px solid rgba(122,59,18,0.18);
+  }
+  .history-badge.assinatura{background:rgba(60,36,64,0.1);color:var(--plum);border-color:rgba(60,36,64,0.2);}
 </style>
 </head>
 <body>
@@ -260,6 +314,9 @@
   </div>
 
   <button class="reset-link" id="resetLink" type="button">Reiniciar rotação da semana</button>
+  <button class="reset-link" id="historyToggle" type="button">Ver histórico de perfumes</button>
+
+  <div class="history-panel" id="historyPanel"></div>
 </div>
 
 <script>
@@ -355,6 +412,34 @@ async function loadTodayPick(dKey){
 }
 async function saveTodayPick(dKey, payload){
   try{ await storage.set('pick:'+dKey, JSON.stringify(payload), false); }catch(e){}
+  await upsertHistory(payload);
+}
+
+async function upsertHistory(payload){
+  let list = [];
+  try{
+    const res = await storage.get('history-log', false);
+    if (res && res.value) list = JSON.parse(res.value);
+  }catch(e){}
+  const entry = {
+    dateKey: payload.dateKey, weekKey: payload.weekKey,
+    nome: payload.perfume.nome, marca: payload.perfume.marca,
+    reasonTag: payload.reasonTag, manual: !!payload.manual,
+    temp: payload.temp, hot: payload.hot, isRaining: !!payload.isRaining, season: payload.season
+  };
+  const idx = list.findIndex(e => e.dateKey === entry.dateKey);
+  if (idx !== -1) list[idx] = entry; else list.push(entry);
+  list.sort((a,b) => b.dateKey.localeCompare(a.dateKey));
+  if (list.length > 120) list = list.slice(0, 120);
+  try{ await storage.set('history-log', JSON.stringify(list), false); }catch(e){}
+}
+
+async function loadHistory(){
+  try{
+    const res = await storage.get('history-log', false);
+    if (res && res.value) return JSON.parse(res.value);
+  }catch(e){}
+  return [];
 }
 
 // ---------- lógica de seleção ----------
@@ -638,6 +723,52 @@ document.getElementById('resetLink').addEventListener('click', async ()=>{
 
 document.getElementById('manualBtn').addEventListener('click', ()=>{
   document.getElementById('weatherStatus').textContent = 'Modo manual: ajuste o campo de temperatura acima.';
+});
+
+// ---------- histórico ----------
+const WEEKDAY_SHORT = ['dom','seg','ter','qua','qui','sex','sáb'];
+function formatHistoryDate(dKey){
+  const [y,m,d] = dKey.split('-').map(Number);
+  const dt = new Date(y, m-1, d);
+  return { dayMonth: pad(d)+'/'+pad(m), weekday: WEEKDAY_SHORT[dt.getDay()] };
+}
+
+function renderHistory(list){
+  const panel = document.getElementById('historyPanel');
+  if (!list.length){
+    panel.innerHTML = '<div class="history-empty">Ainda não há histórico — as escolhas de cada dia vão aparecer aqui.</div>';
+    return;
+  }
+  panel.innerHTML = list.map(entry=>{
+    const { dayMonth, weekday } = formatHistoryDate(entry.dateKey);
+    const badgeLabel = entry.reasonTag === 'assinatura' ? 'Assinatura'
+                      : entry.reasonTag === 'favorito' ? 'Favorito'
+                      : 'Regular';
+    const badgeClass = entry.reasonTag === 'assinatura' ? 'history-badge assinatura' : 'history-badge';
+    const manualNote = entry.manual ? ' · troca manual' : '';
+    return `
+      <div class="history-row">
+        <div class="history-date"><b>${dayMonth}</b>${weekday}</div>
+        <div class="history-info">
+          <p class="history-name">${entry.nome}</p>
+          <p class="history-brand">${entry.marca} · ${entry.hot ? 'calor' : 'frio'} ${entry.temp}°C${entry.isRaining ? ' · chuva' : ''}${manualNote}</p>
+        </div>
+        <span class="${badgeClass}">${badgeLabel}</span>
+      </div>`;
+  }).join('');
+}
+
+document.getElementById('historyToggle').addEventListener('click', async ()=>{
+  const panel = document.getElementById('historyPanel');
+  const isShown = panel.classList.contains('show');
+  if (isShown){
+    panel.classList.remove('show');
+    return;
+  }
+  panel.innerHTML = '<div class="history-empty">Carregando…</div>';
+  panel.classList.add('show');
+  const list = await loadHistory();
+  renderHistory(list);
 });
 
 // tenta detectar temperatura automaticamente via geolocalização + Open-Meteo
