@@ -278,10 +278,10 @@
   <header>
     <div class="eyebrow-row">
       <div class="glyph"></div>
-      <div class="kicker">Seletor Perfume do Madmax · rotina das 5h15</div>
+      <div class="kicker">Seletor Perfume do Madmax</div>
     </div>
-    <h1>Qual perfume hoje?</h1>
-    <p class="sub">Cruza temperatura e estação com sua coleção. A assinatura entra uma vez por semana, e ao menos um favorito também — sem repetir os demais até girar toda a lista.</p>
+    <h1>Qual perfume agora?</h1>
+    <p class="sub">Cruza horário (diurno 5h–17h / noturno 17h–5h), temperatura, chuva e estação com sua coleção. A assinatura entra uma vez por semana, e ao menos um favorito também — sem repetir os demais até girar toda a lista.</p>
   </header>
 
   <div class="card" id="inputCard">
@@ -412,25 +412,27 @@ async function loadTodayPick(dKey){
 }
 async function saveTodayPick(dKey, payload){
   try{ await storage.set('pick:'+dKey, JSON.stringify(payload), false); }catch(e){}
-  await upsertHistory(payload);
+  await appendHistory(payload);
 }
 
-async function upsertHistory(payload){
+async function appendHistory(payload){
   let list = [];
   try{
     const res = await storage.get('history-log', false);
     if (res && res.value) list = JSON.parse(res.value);
   }catch(e){}
   const entry = {
+    id: payload.dateKey + '-' + Date.now() + '-' + Math.floor(Math.random()*1000),
+    ts: Date.now(),
     dateKey: payload.dateKey, weekKey: payload.weekKey,
     nome: payload.perfume.nome, marca: payload.perfume.marca,
     reasonTag: payload.reasonTag, manual: !!payload.manual,
-    temp: payload.temp, hot: payload.hot, isRaining: !!payload.isRaining, season: payload.season
+    temp: payload.temp, hot: payload.hot, isRaining: !!payload.isRaining,
+    season: payload.season, period: payload.period
   };
-  const idx = list.findIndex(e => e.dateKey === entry.dateKey);
-  if (idx !== -1) list[idx] = entry; else list.push(entry);
-  list.sort((a,b) => b.dateKey.localeCompare(a.dateKey));
-  if (list.length > 120) list = list.slice(0, 120);
+  list.push(entry); // sempre adiciona — nunca substitui uma escolha anterior do mesmo dia
+  list.sort((a,b) => b.ts - a.ts);
+  if (list.length > 200) list = list.slice(0, 200);
   try{ await storage.set('history-log', JSON.stringify(list), false); }catch(e){}
 }
 
@@ -445,11 +447,17 @@ async function loadHistory(){
 // ---------- lógica de seleção ----------
 function isHot(temp){ return temp > 22; }
 
-function eligiblePool(temp){
+// diurno: 5h00–16h59 · noturno: 17h00–4h59
+function getCurrentPeriod(date){
+  const hour = date.getHours();
+  return (hour >= 5 && hour < 17) ? 'Dia' : 'Noite';
+}
+
+function eligiblePool(temp, period){
   const hot = isHot(temp);
   const wantAffin = hot ? 'calor' : 'frio';
   return PERFUMES.filter(p=>{
-    const periodoOk = (p.periodo === 'Dia' || p.periodo === 'Dia e noite');
+    const periodoOk = (p.periodo === period || p.periodo === 'Dia e noite');
     const affinOk = (p.afinidade === wantAffin || p.afinidade === 'transicao');
     return periodoOk && affinOk;
   });
@@ -472,10 +480,11 @@ async function chooseTodayPerfume(temp, isRaining){
   const weekdayIdx = isoWeekdayMon0(now); // 0=seg ... 6=dom
   const season = getSeason(now, isRaining);
   const hot = isHot(temp);
+  const period = getCurrentPeriod(now);
 
-  // se já existe escolha salva pra hoje nessa mesma semana e mesma condição de chuva, reaproveita
+  // se já existe escolha salva pra hoje nessa mesma semana, mesma condição de chuva E mesmo período (dia/noite), reaproveita
   const existing = await loadTodayPick(dKey);
-  if (existing && existing.weekKey === wKey && existing.temp === temp && !!existing.isRaining === !!isRaining) {
+  if (existing && existing.weekKey === wKey && existing.temp === temp && !!existing.isRaining === !!isRaining && existing.period === period) {
     return existing;
   }
 
@@ -485,7 +494,7 @@ async function chooseTodayPerfume(temp, isRaining){
   const lastName = yPick && yPick.perfume ? yPick.perfume.nome : null;
 
   let state = await loadWeekState(wKey);
-  const pool = eligiblePool(temp);
+  const pool = eligiblePool(temp, period);
 
   const assinatura = pool.find(p => p.categoria === 'assinatura');
   let favoritosPool = pool.filter(p => p.categoria === 'favorito' && state.usedNames.indexOf(p.nome) === -1);
@@ -546,9 +555,10 @@ async function chooseTodayPerfume(temp, isRaining){
   }
 
   if (!chosen) {
-    // fallback absoluto: qualquer perfume de dia, evitando repetir o de ontem se possível
-    const anyDayPerfume = excludeName(PERFUMES.filter(p => p.periodo !== 'Noite'), lastName);
-    chosen = anyDayPerfume[0] || PERFUMES[0];
+    // fallback absoluto: qualquer perfume do período atual, evitando repetir o de ontem se possível
+    const periodPerfumes = PERFUMES.filter(p => p.periodo === period || p.periodo === 'Dia e noite');
+    const anyPeriodPerfume = excludeName(periodPerfumes.length ? periodPerfumes : PERFUMES, lastName);
+    chosen = anyPeriodPerfume[0] || PERFUMES[0];
     reasonTag = 'regular';
   }
 
@@ -559,7 +569,7 @@ async function chooseTodayPerfume(temp, isRaining){
   await saveWeekState(wKey, state);
 
   const payload = {
-    weekKey: wKey, dateKey: dKey, temp, hot, season, weekdayIdx, isRaining: !!isRaining,
+    weekKey: wKey, dateKey: dKey, temp, hot, season, weekdayIdx, isRaining: !!isRaining, period,
     perfume: chosen, reasonTag,
     signatureUsed: state.signatureUsed, favoriteCount: state.favoriteCount,
     usedCount: state.usedNames.length
@@ -576,6 +586,7 @@ async function pickAlternative(currentPayload, temp, isRaining){
   const weekdayIdx = isoWeekdayMon0(now);
   const season = getSeason(now, isRaining);
   const hot = isHot(temp);
+  const period = getCurrentPeriod(now);
 
   const yesterday = new Date(now.getTime() - 86400000);
   const yPick = await loadTodayPick(dateKey(yesterday));
@@ -593,13 +604,16 @@ async function pickAlternative(currentPayload, temp, isRaining){
 
   const excludeToday = currentPayload && currentPayload.perfume ? currentPayload.perfume.nome : null;
 
-  let pool = eligiblePool(temp);
+  let pool = eligiblePool(temp, period);
   pool = excludeName(pool, excludeToday);
   pool = excludeName(pool, lastName);
 
   let candidates = pool.filter(p => seasonMatch(p, season));
   if (!candidates.length) candidates = pool;
-  if (!candidates.length) candidates = excludeName(PERFUMES.filter(p => p.periodo !== 'Noite'), excludeToday);
+  if (!candidates.length) {
+    const periodPerfumes = PERFUMES.filter(p => p.periodo === period || p.periodo === 'Dia e noite');
+    candidates = excludeName(periodPerfumes.length ? periodPerfumes : PERFUMES, excludeToday);
+  }
 
   // contador de cliques do dia, pra variar a sugestão a cada troca
   let altCount = 0;
@@ -619,7 +633,7 @@ async function pickAlternative(currentPayload, temp, isRaining){
   await saveWeekState(wKey, state);
 
   const payload = {
-    weekKey: wKey, dateKey: dKey, temp, hot, season, weekdayIdx, isRaining: !!isRaining,
+    weekKey: wKey, dateKey: dKey, temp, hot, season, weekdayIdx, isRaining: !!isRaining, period,
     perfume: chosen, reasonTag, manual: true,
     signatureUsed: state.signatureUsed, favoriteCount: state.favoriteCount,
     usedCount: state.usedNames.length
@@ -630,7 +644,7 @@ async function pickAlternative(currentPayload, temp, isRaining){
 const DAY_LABELS = ['Seg','Ter','Qua','Qui','Sex','Sáb','Dom'];
 
 function renderResult(payload){
-  const { perfume, reasonTag, hot, season, weekdayIdx, signatureUsed, favoriteCount, isRaining } = payload;
+  const { perfume, reasonTag, hot, season, weekdayIdx, signatureUsed, favoriteCount, isRaining, period } = payload;
 
   document.getElementById('perfumeName').textContent = perfume.nome;
   document.getElementById('perfumeBrand').textContent = perfume.marca;
@@ -643,6 +657,7 @@ function renderResult(payload){
   tagRow.innerHTML = `
     ${payload.manual ? '<span class="tag">Troca manual</span>' : ''}
     <span class="tag hero">${heroLabel}</span>
+    <span class="tag">${period === 'Noite' ? 'Período noturno' : 'Período diurno'}</span>
     <span class="tag">${hot ? 'Calor' : 'Frio'} · ${payload.temp}°C</span>
     <span class="tag">${season}${isRaining ? ' (chuva)' : ''}</span>
   `;
@@ -651,8 +666,9 @@ function renderResult(payload){
     ? `combina com a estação atual (${season.toLowerCase()})`
     : `é de perfil versátil (${perfume.estacoes.join(' / ')}), então cobre bem o clima de hoje`;
 
-  let why = `Escolhido para uma manhã de <b>${hot ? 'calor' : 'frio'}</b> (${payload.temp}°C)${isRaining ? ', com <b>chuva</b> — tratada como Inverno na escolha,' : ''} e ${seasonNote}.`;
-  if (reasonTag === 'assinatura') why += ' É sua fragrância assinatura — entra uma vez por semana, e hoje foi o dia.';
+  const periodNote = period === 'Noite' ? 'um período noturno (17h–5h)' : 'um período diurno (5h–17h)';
+  let why = `Escolhido para <b>${periodNote}</b>, com <b>${hot ? 'calor' : 'frio'}</b> (${payload.temp}°C)${isRaining ? ' e <b>chuva</b> — tratada como Inverno na escolha' : ''}, e ${seasonNote}.`;
+  if (reasonTag === 'assinatura') why += ' É sua fragrância assinatura — entra uma vez por semana, e agora foi a vez.';
   if (reasonTag === 'favorito') why += ' É um dos seus favoritos — a semana ainda estava sem nenhum, então ele entrou.';
 
   document.getElementById('whyText').innerHTML = why;
@@ -751,7 +767,7 @@ function renderHistory(list){
         <div class="history-date"><b>${dayMonth}</b>${weekday}</div>
         <div class="history-info">
           <p class="history-name">${entry.nome}</p>
-          <p class="history-brand">${entry.marca} · ${entry.hot ? 'calor' : 'frio'} ${entry.temp}°C${entry.isRaining ? ' · chuva' : ''}${manualNote}</p>
+          <p class="history-brand">${entry.marca} · ${entry.period === 'Noite' ? 'noite' : 'dia'} · ${entry.hot ? 'calor' : 'frio'} ${entry.temp}°C${entry.isRaining ? ' · chuva' : ''}${manualNote}</p>
         </div>
         <span class="${badgeClass}">${badgeLabel}</span>
       </div>`;
