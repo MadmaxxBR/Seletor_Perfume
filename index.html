@@ -4,6 +4,14 @@
 <meta charset="UTF-8">
 <title>The Essence Shelf</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="theme-color" content="#3c2440">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Essence Shelf">
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600&display=swap');
 
@@ -352,10 +360,23 @@
   .edit-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
   .collection-edit .season-check{margin-top:6px;}
   .save-row{margin-top:12px;}
+  .storage-warning{
+    display:none;
+    margin-bottom:14px;
+    padding:10px 14px;
+    border-radius:12px;
+    background:rgba(160,47,31,0.1);
+    border:1px solid rgba(160,47,31,0.35);
+    color:#7a2416;
+    font-size:12.5px;
+    line-height:1.5;
+  }
 </style>
 </head>
 <body>
 <div class="wrap">
+
+  <div class="storage-warning" id="storageWarning"></div>
 
   <header>
     <div class="eyebrow-row">
@@ -480,6 +501,46 @@
 </div>
 
 <script>
+// universal storage adapter: uses Claude's window.storage when available,
+// otherwise falls back to the browser's localStorage (GitHub Pages / PWA / APK)
+const appStorage = (function(){
+  if (typeof window !== 'undefined' && window.storage && typeof window.storage.get === 'function') {
+    return window.storage;
+  }
+  const PREFIX = 'essenceshelf:';
+  return {
+    async get(key){
+      const raw = localStorage.getItem(PREFIX + key);
+      if (raw === null) throw new Error('not found');
+      return { key, value: raw };
+    },
+    async set(key, value){
+      localStorage.setItem(PREFIX + key, value);
+      return { key, value };
+    },
+    async delete(key){
+      localStorage.removeItem(PREFIX + key);
+      return { key, deleted: true };
+    }
+  };
+})();
+
+async function checkStorage(){
+  try{
+    await appStorage.set('healthcheck', '1', false);
+    const r = await appStorage.get('healthcheck', false);
+    return !!(r && r.value === '1');
+  }catch(e){ return false; }
+}
+
+try {
+  if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('service-worker.js').catch(()=>{});
+    });
+  }
+} catch(e) {}
+
 const BASE_PERFUMES = [{"id": "p001", "nome": "Effervescent", "marca": "LAB 8 Fragrances", "periodo": "Day", "estacoes": ["Spring", "Summer"], "afinidade": "warm", "categoria": "favorite"}, {"id": "p002", "nome": "Blue de LAB 8", "marca": "LAB 8 Fragrances", "periodo": "Day and Night", "estacoes": ["Spring", "Summer"], "afinidade": "warm", "categoria": "regular"}, {"id": "p003", "nome": "Essencial Safran Masculino", "marca": "Natura", "periodo": "Night", "estacoes": ["Autumn", "Winter"], "afinidade": "cold", "categoria": "regular"}, {"id": "p004", "nome": "Bade'e Al Oud – Oud for Glory", "marca": "Lattafa Perfumes", "periodo": "Night", "estacoes": ["Autumn", "Winter"], "afinidade": "cold", "categoria": "regular"}, {"id": "p005", "nome": "Vulcan Feu", "marca": "French Avenue", "periodo": "Day", "estacoes": ["Spring", "Summer"], "afinidade": "warm", "categoria": "regular"}, {"id": "p006", "nome": "Club de Nuit Intense Man", "marca": "Armaf", "periodo": "Night", "estacoes": ["Autumn", "Winter"], "afinidade": "cold", "categoria": "regular"}, {"id": "p007", "nome": "Light Blue Pour Homme (clássico)", "marca": "Dolce & Gabbana", "periodo": "Day", "estacoes": ["Spring", "Summer"], "afinidade": "warm", "categoria": "regular"}, {"id": "p008", "nome": "Azzaro Pour Homme Cologne Intense", "marca": "Azzaro", "periodo": "Day", "estacoes": ["Spring", "Summer"], "afinidade": "warm", "categoria": "regular"}, {"id": "p009", "nome": "H24", "marca": "Hermès", "periodo": "Day", "estacoes": ["Spring", "Summer"], "afinidade": "warm", "categoria": "regular"}, {"id": "p010", "nome": "Animale Animale for Men", "marca": "Animale", "periodo": "Night", "estacoes": ["Autumn", "Winter"], "afinidade": "cold", "categoria": "regular"}, {"id": "p011", "nome": "Bad Boy Cobalt Eau de Parfum Électrique", "marca": "Carolina Herrera", "periodo": "Day and Night", "estacoes": ["Spring", "Autumn"], "afinidade": "transitional", "categoria": "regular"}, {"id": "p012", "nome": "Jimmy Choo Man Intense", "marca": "Jimmy Choo", "periodo": "Night", "estacoes": ["Autumn", "Winter"], "afinidade": "cold", "categoria": "regular"}, {"id": "p013", "nome": "Givenchy Pour Homme", "marca": "Givenchy", "periodo": "Day", "estacoes": ["Spring", "Summer"], "afinidade": "warm", "categoria": "regular"}, {"id": "p014", "nome": "First Instinct", "marca": "Abercrombie & Fitch", "periodo": "Day", "estacoes": ["Spring", "Summer"], "afinidade": "warm", "categoria": "regular"}, {"id": "p015", "nome": "Bleu de Chanel", "marca": "Chanel", "periodo": "Day and Night", "estacoes": ["Spring", "Autumn"], "afinidade": "transitional", "categoria": "regular"}, {"id": "p016", "nome": "L'Eau d'Issey Pour Homme Solar Lavender", "marca": "Issey Miyake", "periodo": "Day", "estacoes": ["Spring", "Summer"], "afinidade": "warm", "categoria": "regular"}, {"id": "p017", "nome": "Tiffany & Love for Him", "marca": "Tiffany & Co.", "periodo": "Day", "estacoes": ["Spring", "Summer"], "afinidade": "warm", "categoria": "regular"}, {"id": "p018", "nome": "Black XS", "marca": "Paco Rabanne", "periodo": "Night", "estacoes": ["Autumn", "Winter"], "afinidade": "cold", "categoria": "favorite"}, {"id": "p019", "nome": "Uomo", "marca": "Salvatore Ferragamo", "periodo": "Day and Night", "estacoes": ["Autumn", "Winter"], "afinidade": "cold", "categoria": "regular"}, {"id": "p020", "nome": "Bvlgari Man in Black", "marca": "Bvlgari", "periodo": "Night", "estacoes": ["Autumn", "Winter"], "afinidade": "cold", "categoria": "regular"}, {"id": "p021", "nome": "Versace Eau Fraîche Extrême", "marca": "Versace", "periodo": "Day", "estacoes": ["Spring", "Summer"], "afinidade": "warm", "categoria": "favorite"}, {"id": "p022", "nome": "Versace Man Eau Fraîche", "marca": "Versace", "periodo": "Day", "estacoes": ["Spring", "Summer"], "afinidade": "warm", "categoria": "favorite"}, {"id": "p023", "nome": "L'Eau Kenzo Pour Homme", "marca": "Kenzo", "periodo": "Day", "estacoes": ["Spring", "Summer"], "afinidade": "warm", "categoria": "regular"}, {"id": "p024", "nome": "Kenzo Pour Homme Eau de Toilette", "marca": "Kenzo", "periodo": "Day", "estacoes": ["Spring", "Summer"], "afinidade": "warm", "categoria": "regular"}, {"id": "p025", "nome": "Kenzo Pour Homme Eau de Parfum", "marca": "Kenzo", "periodo": "Day and Night", "estacoes": ["Spring", "Autumn"], "afinidade": "transitional", "categoria": "regular"}, {"id": "p026", "nome": "Alien Man", "marca": "Mugler", "periodo": "Night", "estacoes": ["Autumn", "Winter"], "afinidade": "cold", "categoria": "regular"}, {"id": "p027", "nome": "A*Men", "marca": "Mugler", "periodo": "Night", "estacoes": ["Autumn", "Winter"], "afinidade": "cold", "categoria": "regular"}, {"id": "p028", "nome": "Impact", "marca": "Tommy Hilfiger", "periodo": "Day and Night", "estacoes": ["Spring", "Autumn"], "afinidade": "transitional", "categoria": "regular"}, {"id": "p029", "nome": "Tommy", "marca": "Tommy Hilfiger", "periodo": "Day", "estacoes": ["Spring", "Summer"], "afinidade": "warm", "categoria": "regular"}, {"id": "p030", "nome": "Mr. Burberry Indigo", "marca": "Burberry", "periodo": "Day", "estacoes": ["Spring", "Summer"], "afinidade": "warm", "categoria": "regular"}, {"id": "p031", "nome": "Burberry Hero", "marca": "Burberry", "periodo": "Day and Night", "estacoes": ["Autumn", "Spring"], "afinidade": "transitional", "categoria": "regular"}, {"id": "p032", "nome": "Le Male Lover", "marca": "Jean Paul Gaultier", "periodo": "Day and Night", "estacoes": ["Spring", "Autumn"], "afinidade": "transitional", "categoria": "regular"}, {"id": "p033", "nome": "Le Beau Le Parfum", "marca": "Jean Paul Gaultier", "periodo": "Night", "estacoes": ["Autumn", "Winter"], "afinidade": "cold", "categoria": "regular"}, {"id": "p034", "nome": "Le Male Paradise Garden", "marca": "Jean Paul Gaultier", "periodo": "Day and Night", "estacoes": ["Spring", "Summer"], "afinidade": "warm", "categoria": "regular"}, {"id": "p035", "nome": "Le Male Eau Fraîche", "marca": "Jean Paul Gaultier", "periodo": "Day", "estacoes": ["Spring", "Summer"], "afinidade": "warm", "categoria": "regular"}, {"id": "p036", "nome": "Boss Bottled Infinite Eau de Parfum", "marca": "Hugo Boss", "periodo": "Day and Night", "estacoes": ["Spring", "Autumn"], "afinidade": "transitional", "categoria": "signature"}, {"id": "p037", "nome": "Boss Bottled Eau de Toilette", "marca": "Hugo Boss", "periodo": "Day and Night", "estacoes": ["Spring", "Autumn"], "afinidade": "transitional", "categoria": "favorite"}, {"id": "p038", "nome": "Boss Bottled Tonic Eau de Toilette", "marca": "Hugo Boss", "periodo": "Day", "estacoes": ["Spring", "Summer"], "afinidade": "warm", "categoria": "regular"}, {"id": "p039", "nome": "Boss Bottled Night Eau de Toilette", "marca": "Hugo Boss", "periodo": "Night", "estacoes": ["Autumn", "Winter"], "afinidade": "cold", "categoria": "regular"}, {"id": "p040", "nome": "Boss Bottled Parfum", "marca": "Hugo Boss", "periodo": "Night", "estacoes": ["Autumn", "Winter"], "afinidade": "cold", "categoria": "regular"}, {"id": "p041", "nome": "Boss Bottled Eau de Parfum", "marca": "Hugo Boss", "periodo": "Day and Night", "estacoes": ["Autumn", "Winter"], "afinidade": "cold", "categoria": "regular"}, {"id": "p042", "nome": "Ombré Leather Eau de Toilette", "marca": "Tom Ford", "periodo": "Night", "estacoes": ["Autumn", "Winter"], "afinidade": "cold", "categoria": "favorite"}, {"id": "p043", "nome": "Black Orchid Eau de Parfum", "marca": "Tom Ford", "periodo": "Night", "estacoes": ["Autumn", "Winter"], "afinidade": "cold", "categoria": "regular"}, {"id": "p044", "nome": "Legend Eau de Toilette", "marca": "Montblanc", "periodo": "Day and Night", "estacoes": ["Spring", "Autumn"], "afinidade": "transitional", "categoria": "regular"}, {"id": "p045", "nome": "Starwalker Extreme", "marca": "Montblanc", "periodo": "Day and Night", "estacoes": ["Spring", "Autumn"], "afinidade": "transitional", "categoria": "regular"}, {"id": "p046", "nome": "Acqua di Giò Profondo Eau de Parfum", "marca": "Giorgio Armani", "periodo": "Day", "estacoes": ["Spring", "Summer"], "afinidade": "warm", "categoria": "regular"}, {"id": "p047", "nome": "Armani Code Eau de Toilette", "marca": "Giorgio Armani", "periodo": "Night", "estacoes": ["Autumn", "Winter"], "afinidade": "cold", "categoria": "regular"}, {"id": "p048", "nome": "Luna Rossa Eau de Toilette", "marca": "Prada", "periodo": "Day", "estacoes": ["Spring", "Summer"], "afinidade": "warm", "categoria": "favorite"}, {"id": "p049", "nome": "Luna Rossa Eau Sport Eau de Toilette", "marca": "Prada", "periodo": "Day", "estacoes": ["Spring", "Summer"], "afinidade": "warm", "categoria": "regular"}, {"id": "p050", "nome": "Luna Rossa Ocean Eau de Toilette", "marca": "Prada", "periodo": "Day", "estacoes": ["Spring", "Summer"], "afinidade": "warm", "categoria": "regular"}, {"id": "p051", "nome": "Luna Rossa Carbon Eau de Toilette", "marca": "Prada", "periodo": "Day and Night", "estacoes": ["Spring", "Autumn"], "afinidade": "transitional", "categoria": "favorite"}, {"id": "p052", "nome": "Luna Rossa Black Eau de Parfum", "marca": "Prada", "periodo": "Night", "estacoes": ["Autumn", "Winter"], "afinidade": "cold", "categoria": "regular"}, {"id": "p053", "nome": "Y Eau de Toilette", "marca": "Yves Saint Laurent", "periodo": "Day and Night", "estacoes": ["Spring", "Autumn"], "afinidade": "transitional", "categoria": "regular"}, {"id": "p054", "nome": "MYSLF Eau de Toilette", "marca": "Yves Saint Laurent", "periodo": "Day and Night", "estacoes": ["Spring", "Autumn"], "afinidade": "transitional", "categoria": "regular"}, {"id": "p055", "nome": "L'Homme Eau de Toilette", "marca": "Yves Saint Laurent", "periodo": "Day", "estacoes": ["Spring", "Summer"], "afinidade": "warm", "categoria": "regular"}, {"id": "p056", "nome": "La Nuit de L'Homme Eau de Toilette", "marca": "Yves Saint Laurent", "periodo": "Night", "estacoes": ["Autumn", "Winter"], "afinidade": "cold", "categoria": "regular"}, {"id": "p057", "nome": "Sauvage Eau de Toilette", "marca": "Dior", "periodo": "Day and Night", "estacoes": ["Spring", "Autumn"], "afinidade": "transitional", "categoria": "favorite"}, {"id": "p058", "nome": "Fahrenheit Eau de Toilette", "marca": "Dior", "periodo": "Day and Night", "estacoes": ["Autumn", "Winter"], "afinidade": "cold", "categoria": "favorite"}, {"id": "p059", "nome": "Higher Energy Eau de Toilette", "marca": "Dior", "periodo": "Day", "estacoes": ["Spring", "Summer"], "afinidade": "warm", "categoria": "regular"}, {"id": "p060", "nome": "Dior Homme Sport Eau de Toilette", "marca": "Dior", "periodo": "Day", "estacoes": ["Spring", "Summer"], "afinidade": "warm", "categoria": "regular"}, {"id": "p061", "nome": "Dune Pour Homme Eau de Toilette", "marca": "Dior", "periodo": "Day and Night", "estacoes": ["Spring", "Autumn"], "afinidade": "transitional", "categoria": "regular"}, {"id": "p062", "nome": "Aquatica", "marca": "Rayhaan", "periodo": "Day", "estacoes": ["Spring", "Summer"], "afinidade": "warm", "categoria": "regular"}, {"id": "p063", "nome": "Liquid Brun", "marca": "French Avenue", "periodo": "Day and Night", "estacoes": ["Autumn", "Winter"], "afinidade": "cold", "categoria": "regular"}, {"id": "p064", "nome": "Everest", "marca": "Nuancielo", "periodo": "Day and Night", "estacoes": ["Spring", "Autumn"], "afinidade": "transitional", "categoria": "regular"}, {"id": "p065", "nome": "Angel's Lux Frost", "marca": "Nuancielo", "periodo": "Day and Night", "estacoes": ["Autumn", "Winter"], "afinidade": "cold", "categoria": "regular"}];let PERFUMES = BASE_PERFUMES.slice();
 
 // ---------- collection management ("Collection" tab) ----------
@@ -503,9 +564,9 @@ function computeAffinity(estacoes){
 
 async function loadCollectionData(){
   let overrides = {}, removed = [], added = [];
-  try{ const r = await window.storage.get('perfume-overrides', false); if (r && r.value) overrides = JSON.parse(r.value); }catch(e){}
-  try{ const r = await window.storage.get('perfume-removed', false); if (r && r.value) removed = JSON.parse(r.value); }catch(e){}
-  try{ const r = await window.storage.get('perfume-added', false); if (r && r.value) added = JSON.parse(r.value); }catch(e){}
+  try{ const r = await appStorage.get('perfume-overrides', false); if (r && r.value) overrides = JSON.parse(r.value); }catch(e){}
+  try{ const r = await appStorage.get('perfume-removed', false); if (r && r.value) removed = JSON.parse(r.value); }catch(e){}
+  try{ const r = await appStorage.get('perfume-added', false); if (r && r.value) added = JSON.parse(r.value); }catch(e){}
   return { overrides, removed, added };
 }
 
@@ -521,7 +582,7 @@ async function refreshPerfumes(){
 async function saveOverride(id, fields){
   const { overrides } = await loadCollectionData();
   overrides[id] = Object.assign({}, overrides[id] || {}, fields);
-  try{ await window.storage.set('perfume-overrides', JSON.stringify(overrides), false); }catch(e){}
+  try{ await appStorage.set('perfume-overrides', JSON.stringify(overrides), false); }catch(e){}
   await refreshPerfumes();
 }
 
@@ -531,10 +592,10 @@ async function removePerfume(id){
   const addedIdx = added.findIndex(p => p.id === id);
   if (addedIdx !== -1){
     added.splice(addedIdx, 1);
-    try{ await window.storage.set('perfume-added', JSON.stringify(added), false); }catch(e){}
+    try{ await appStorage.set('perfume-added', JSON.stringify(added), false); }catch(e){}
   } else if (removed.indexOf(id) === -1){
     removed.push(id);
-    try{ await window.storage.set('perfume-removed', JSON.stringify(removed), false); }catch(e){}
+    try{ await appStorage.set('perfume-removed', JSON.stringify(removed), false); }catch(e){}
   }
   await refreshPerfumes();
 }
@@ -548,7 +609,7 @@ async function addPerfume(fields){
     categoria: fields.categoria
   };
   added.push(entry);
-  try{ await window.storage.set('perfume-added', JSON.stringify(added), false); }catch(e){}
+  try{ await appStorage.set('perfume-added', JSON.stringify(added), false); }catch(e){}
   await refreshPerfumes();
   return entry;
 }
@@ -603,30 +664,30 @@ function pickSeeded(arr, seedStr){
 // ---------- weekly state ----------
 async function loadWeekState(weekKey){
   try{
-    const res = await window.storage.get('week-state:'+weekKey, false);
+    const res = await appStorage.get('week-state:'+weekKey, false);
     if (res && res.value) return JSON.parse(res.value);
   }catch(e){}
   return { usedNames: [], signatureUsed: false, favoriteCount: 0 };
 }
 async function saveWeekState(weekKey, state){
-  try{ await window.storage.set('week-state:'+weekKey, JSON.stringify(state), false); }catch(e){}
+  try{ await appStorage.set('week-state:'+weekKey, JSON.stringify(state), false); }catch(e){}
 }
 async function loadTodayPick(dKey){
   try{
-    const res = await window.storage.get('pick:'+dKey, false);
+    const res = await appStorage.get('pick:'+dKey, false);
     if (res && res.value) return JSON.parse(res.value);
   }catch(e){}
   return null;
 }
 async function saveTodayPick(dKey, payload){
-  try{ await window.storage.set('pick:'+dKey, JSON.stringify(payload), false); }catch(e){}
+  try{ await appStorage.set('pick:'+dKey, JSON.stringify(payload), false); }catch(e){}
   await appendHistory(payload);
 }
 
 async function appendHistory(payload){
   let list = [];
   try{
-    const res = await window.storage.get('history-log', false);
+    const res = await appStorage.get('history-log', false);
     if (res && res.value) list = JSON.parse(res.value);
   }catch(e){}
   const entry = {
@@ -641,12 +702,12 @@ async function appendHistory(payload){
   list.push(entry); // always append — never replace a previous pick from the same day
   list.sort((a,b) => b.ts - a.ts);
   if (list.length > 200) list = list.slice(0, 200);
-  try{ await window.storage.set('history-log', JSON.stringify(list), false); }catch(e){}
+  try{ await appStorage.set('history-log', JSON.stringify(list), false); }catch(e){}
 }
 
 async function loadHistory(){
   try{
-    const res = await window.storage.get('history-log', false);
+    const res = await appStorage.get('history-log', false);
     if (res && res.value) return JSON.parse(res.value);
   }catch(e){}
   return [];
@@ -826,11 +887,11 @@ async function pickAlternative(currentPayload, temp, isRaining){
   // click counter for the day, to vary the suggestion on each swap
   let altCount = 0;
   try{
-    const c = await window.storage.get('alt-count:'+dKey, false);
+    const c = await appStorage.get('alt-count:'+dKey, false);
     altCount = c && c.value ? parseInt(c.value, 10) : 0;
   }catch(e){}
   altCount += 1;
-  try{ await window.storage.set('alt-count:'+dKey, String(altCount), false); }catch(e){}
+  try{ await appStorage.set('alt-count:'+dKey, String(altCount), false); }catch(e){}
 
   const chosen = pickSeeded(candidates, dKey + '-alt-' + altCount) || candidates[0] || PERFUMES[0];
   const reasonTag = chosen.categoria === 'signature' ? 'signature' : chosen.categoria === 'favorite' ? 'favorite' : 'regular';
@@ -886,6 +947,7 @@ function seasonListLabel(seasons){
 
 const I18N = {
   pt: {
+    storageWarning: 'Aviso: o armazenamento do navegador est\u00e1 indispon\u00edvel (modo privado?). O hist\u00f3rico e as altera\u00e7\u00f5es n\u00e3o ser\u00e3o salvos.',
     h1: 'Qual perfume agora?',
     subtitle: 'Cruza hor\u00e1rio (diurno 5h\u201317h / noturno 17h\u20135h), temperatura, chuva e esta\u00e7\u00e3o com sua cole\u00e7\u00e3o. A assinatura entra uma vez por semana, e ao menos um favorito tamb\u00e9m \u2014 sem repetir os demais at\u00e9 girar toda a lista.',
     tabSelector: 'Seletor',
@@ -954,6 +1016,7 @@ const I18N = {
     rainHistorySuffix: ' \u00b7 chuva'
   },
   en: {
+    storageWarning: 'Warning: browser storage is unavailable (private mode?). History and edits will not be saved.',
     h1: 'Which perfume now?',
     subtitle: 'Cross-references time of day (daytime 5am\u20135pm / nighttime 5pm\u20135am), temperature, rain, and season with your collection. The signature comes up once a week, and at least one favorite too \u2014 no repeats among the rest until the whole list has cycled.',
     tabSelector: 'Selector',
@@ -1027,6 +1090,8 @@ function t(key){ return I18N[LANG][key]; }
 
 // ---------- static text application ----------
 function applyStaticText(){
+  const sw = document.getElementById('storageWarning');
+  if (sw && sw.style.display === 'block') sw.textContent = t('storageWarning');
   document.getElementById('h1Text').textContent = t('h1');
   document.getElementById('subText').textContent = t('subtitle');
   document.getElementById('tabSeletorBtn').textContent = t('tabSelector');
@@ -1065,7 +1130,7 @@ function applyStaticText(){
 
 async function setLanguage(lang){
   LANG = lang;
-  try{ await window.storage.set('lang', lang, false); }catch(e){}
+  try{ await appStorage.set('lang', lang, false); }catch(e){}
   applyStaticText();
   if (currentPayload) renderResult(currentPayload);
   const historyPanel = document.getElementById('historyPanel');
@@ -1080,7 +1145,7 @@ async function setLanguage(lang){
 
 async function loadLanguagePref(){
   try{
-    const r = await window.storage.get('lang', false);
+    const r = await appStorage.get('lang', false);
     if (r && r.value) return r.value;
   }catch(e){}
   return 'pt';
@@ -1178,9 +1243,9 @@ document.getElementById('resetLink').addEventListener('click', async ()=>{
   const now = new Date();
   const wKey = isoWeekKey(now);
   try{
-    await window.storage.set('week-state:'+wKey, JSON.stringify({usedNames:[], signatureUsed:false, favoriteCount:0}), false);
-    await window.storage.delete('pick:'+dateKey(now), false);
-    await window.storage.delete('alt-count:'+dateKey(now), false);
+    await appStorage.set('week-state:'+wKey, JSON.stringify({usedNames:[], signatureUsed:false, favoriteCount:0}), false);
+    await appStorage.delete('pick:'+dateKey(now), false);
+    await appStorage.delete('alt-count:'+dateKey(now), false);
   }catch(e){}
   currentPayload = null;
   document.getElementById('resultBlock').classList.remove('show');
@@ -1437,6 +1502,12 @@ document.getElementById('langBtnEn').addEventListener('click', ()=> setLanguage(
 async function init(){
   LANG = await loadLanguagePref();
   applyStaticText();
+  const ok = await checkStorage();
+  if (!ok){
+    const sw = document.getElementById('storageWarning');
+    sw.style.display = 'block';
+    sw.textContent = t('storageWarning');
+  }
   await refreshPerfumes();
 }
 init();
