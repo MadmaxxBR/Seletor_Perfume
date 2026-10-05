@@ -5,3 +5,6 @@ https://chatgpt.com/share/6ac3ac19-4654-83e8-8bfe-a40aded8096c
 My first attempt to create the Daily Random Parfum Selector (chatGPT):
 
 https://chatgpt.com/share/6ac3ae04-bdc8-83e9-9779-18b733045820
+
+My chat in Claude AI where I created the current working version of th website/app.
+https://claude.ai/share/f19d5c80-24e4-49ae-8d63-6ce2a63b2e50
